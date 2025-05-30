@@ -1,4 +1,4 @@
-console.log("🚀 Radius Chat starting with Web Crypto API...");
+console.log("🚀 ne4rby starting with Web Crypto API...");
 
 // Check if Web Crypto API is available
 if (!window.crypto || !window.crypto.subtle) {
@@ -17,9 +17,12 @@ const msgInput = document.querySelector("#msg");
 const sendBtn = document.querySelector("#send");
 const locationPrompt = document.querySelector("#location-prompt");
 const enableLocationBtn = document.querySelector("#enable-location");
+const infoBtn = document.querySelector("#info-btn");
+const infoModal = document.querySelector("#info-modal");
+const infoClose = document.querySelector("#info-close");
 
 // Message management
-const MAX_MESSAGES = 50;  // Keep only latest 50 messages
+const MAX_MESSAGES = 20;  // Keep only latest 20 messages
 
 console.log("🔍 UI Elements found:", {
   statusEl: !!statusEl,
@@ -28,7 +31,10 @@ console.log("🔍 UI Elements found:", {
   msgInput: !!msgInput,
   sendBtn: !!sendBtn,
   locationPrompt: !!locationPrompt,
-  enableLocationBtn: !!enableLocationBtn
+  enableLocationBtn: !!enableLocationBtn,
+  infoBtn: !!infoBtn,
+  infoModal: !!infoModal,
+  infoClose: !!infoClose
 });
 
 // Crypto utilities using Web Crypto API
@@ -228,9 +234,12 @@ async function decryptAndRender(pkt, peerSecrets, peerIds) {
     // Find the shared secret for this peer
     const sharedKey = peerSecrets[peer];
     if (!sharedKey) {
-      console.warn("⚠️ No shared key found for peer:", peer);
+      console.warn("⚠️ No shared key found for peer:", peer.substring(0, 20) + "...");
       return;
     }
+    
+    console.log("🔑 Using shared key for peer:", peer.substring(0, 20) + "...");
+    console.log("🔐 Decrypting with IV:", iv, "data length:", data.length);
     
     // Decrypt the message
     const message = await crypto.decrypt({ iv, data }, sharedKey);
@@ -239,6 +248,14 @@ async function decryptAndRender(pkt, peerSecrets, peerIds) {
     
   } catch (error) {
     console.error("❌ Failed to decrypt message:", error);
+    console.error("❌ Error details:", {
+      name: error.name,
+      message: error.message,
+      peer: pkt.peer?.substring(0, 20) + "...",
+      hasSharedKey: !!peerSecrets[pkt.peer],
+      ivLength: pkt.iv?.length,
+      dataLength: pkt.data?.length
+    });
   }
 }
 
@@ -290,15 +307,47 @@ async function initializeChat(latitude, longitude) {
     // 3. Peer management
     const peerSecrets = {};       // peerPub -> CryptoKey
     const peerIds = {};           // peerPub -> userId
+    const pendingMessages = [];   // Queue for messages that arrive before shared secrets
+
+    // Process any pending messages after establishing shared secrets
+    async function processPendingMessages() {
+      console.log(`📬 Processing ${pendingMessages.length} pending messages...`);
+      const messagesToProcess = [...pendingMessages];
+      pendingMessages.length = 0; // Clear the queue
+      
+      for (const pkt of messagesToProcess) {
+        await decryptAndRender(pkt, peerSecrets, peerIds);
+      }
+    }
 
     ws.onmessage = async ({ data }) => {
       console.log("📨 Received message:", data);
       const pkt = JSON.parse(data);
       console.log("📦 Parsed packet:", pkt);
 
+      // Room full message
+      if (pkt.type === "room_full") {
+        console.log("🚫 Room is full:", pkt.message);
+        updateStatus("Room full");
+        showError(`This location is full (${pkt.current_users}/${pkt.max_users} users). Try again later or move to a different area.`);
+        return;
+      }
+
       // New peer list
       if (pkt.type === "peers") {
         console.log("👥 Received peer list:", pkt.pubs);
+        
+        // Display room info if available
+        if (pkt.room_info) {
+          const { current_users, max_users, room_hash } = pkt.room_info;
+          console.log(`🏠 Room ${room_hash}: ${current_users}/${max_users} users`);
+          
+          // Update status with room capacity
+          const capacityText = `${current_users}/${max_users} users`;
+          statusEl.textContent = `Connected (${capacityText})`;
+        }
+        
+        let newSecretsCreated = false;
         
         for (const peerPub of pkt.pubs) {
           if (!peerSecrets[peerPub]) {
@@ -312,10 +361,16 @@ async function initializeChat(latitude, longitude) {
               const peerId = await generateUserId(peerPub);
               peerIds[peerPub] = peerId;
               console.log("✅ Shared secret created for peer:", peerId);
+              newSecretsCreated = true;
             } catch (error) {
               console.error("❌ Failed to create shared secret:", error);
             }
           }
+        }
+        
+        // Process any pending messages if we created new secrets
+        if (newSecretsCreated && pendingMessages.length > 0) {
+          await processPendingMessages();
         }
         
         // Update peer count
@@ -329,13 +384,50 @@ async function initializeChat(latitude, longitude) {
         
         // Show welcome message if this is the first connection
         if (messagesEl.children.length === 0) {
-          addMessage(`Welcome to Radius Chat! ${peerCount === 0 ? 'You are the first person here.' : `${peerCount} other people are nearby.`}`, false);
+          const welcomeMsg = peerCount === 0 
+            ? 'You are the first person here.' 
+            : `${peerCount} other people are nearby.`;
+          addMessage(`Welcome to ne4rby! ${welcomeMsg}`, false);
+          
+          // Show capacity info if room is getting full
+          if (pkt.room_info && pkt.room_info.current_users >= pkt.room_info.max_users * 0.8) {
+            addMessage(`⚠️ This location is getting busy (${pkt.room_info.current_users}/${pkt.room_info.max_users} users)`, false);
+          }
         }
         
         return;
       }
 
-      // Encrypted message relay
+      // Multi-encrypted message
+      if (pkt.type === "multi_encrypted") {
+        console.log("📨 Received multi-encrypted message from:", pkt.sender.substring(0, 20) + "...");
+        
+        // Find our encrypted version
+        const myEncryptedVersion = pkt.versions[myPublicKey];
+        if (!myEncryptedVersion) {
+          console.log("⚠️ No encrypted version for us in this message");
+          return;
+        }
+        
+        // Decrypt our version
+        const messageForUs = {
+          peer: pkt.sender,
+          iv: myEncryptedVersion.iv,
+          data: myEncryptedVersion.data
+        };
+        
+        await decryptAndRender(messageForUs, peerSecrets, peerIds);
+        return;
+      }
+
+      // Legacy single encrypted message (for backward compatibility)
+      const { peer } = pkt;
+      if (!peerSecrets[peer]) {
+        console.log("⏳ Message from unknown peer, queuing for later:", peer.substring(0, 20) + "...");
+        pendingMessages.push(pkt);
+        return;
+      }
+      
       await decryptAndRender(pkt, peerSecrets, peerIds);
     };
 
@@ -360,22 +452,30 @@ async function initializeChat(latitude, longitude) {
       // Add to our own UI
       addMessage(text, true, myUserId);
       
-      // Send encrypted to all peers
+      // Create encrypted versions for each peer
+      const encryptedVersions = {};
       for (const [peerPub, sharedKey] of Object.entries(peerSecrets)) {
         console.log("🔐 Encrypting message for peer:", peerPub.substring(0, 20) + "...");
         try {
           const encrypted = await crypto.encrypt(text, sharedKey);
-          const encryptedMsg = { 
-            peer: myPublicKey,  // Use sender's key, not recipient's key
+          encryptedVersions[peerPub] = {
             iv: encrypted.iv,
             data: encrypted.data
           };
-          console.log("📤 Sending encrypted message:", encryptedMsg);
-          ws.send(JSON.stringify(encryptedMsg));
         } catch (error) {
           console.error("❌ Failed to encrypt message:", error);
         }
       }
+      
+      // Send one message with all encrypted versions
+      const multiMessage = {
+        type: "multi_encrypted",
+        sender: myPublicKey,
+        versions: encryptedVersions
+      };
+      
+      console.log("📤 Sending multi-encrypted message:", multiMessage);
+      ws.send(JSON.stringify(multiMessage));
       
       msgInput.value = "";
     }
@@ -440,6 +540,23 @@ if (!enableLocationBtn) {
   });
   
   console.log("✅ Location button click handler set up successfully");
+}
+
+// Info modal handlers
+if (infoBtn && infoModal && infoClose) {
+  infoBtn.addEventListener("click", () => {
+    infoModal.style.display = "flex";
+  });
+  
+  infoClose.addEventListener("click", () => {
+    infoModal.style.display = "none";
+  });
+  
+  infoModal.addEventListener("click", (e) => {
+    if (e.target === infoModal) {
+      infoModal.style.display = "none";
+    }
+  });
 }
 
 console.log("🏁 Script loaded and ready!");

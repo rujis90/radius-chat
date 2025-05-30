@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Radius Chat</title>
+    <title>ne4rby - Local Encrypted Chat</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <style>
         * {
@@ -174,31 +174,193 @@
             font-size: 2rem;
             margin-bottom: 15px;
         }
+        
+        .info-btn {
+            background: none;
+            border: none;
+            font: inherit;
+            cursor: pointer;
+            outline: inherit;
+            padding: 0;
+            margin: 0;
+            color: white;
+            font-size: 1.5rem;
+        }
+        
+        .info-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .info-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            margin: 20px;
+            position: relative;
+        }
+        
+        .info-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #718096;
+        }
+        
+        .info-content h2 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+        
+        .info-content h3 {
+            color: #4a5568;
+            margin: 20px 0 10px 0;
+            font-size: 1.1rem;
+        }
+        
+        .info-content p {
+            color: #718096;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        .info-content ul {
+            color: #718096;
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .info-content li {
+            margin-bottom: 8px;
+        }
+        
+        .security-badge {
+            background: #48bb78;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            display: inline-block;
+            margin: 10px 5px;
+        }
     </style>
 </head>
 <body>
     <div class="chat-container">
         <div class="header">
-            <h1>Radius Chat</h1>
+            <h1>ne4rby</h1>
             <div class="status">
                 <span id="status">Ready to connect</span>
                 <span id="peer-count" class="peer-count" style="display: none;">0 peers</span>
+                <button id="info-btn" class="info-btn" title="How it works">ℹ️</button>
             </div>
         </div>
         
         <div class="messages" id="messages">
             <div class="location-prompt" id="location-prompt">
                 <div class="icon">📍</div>
-                <h3>Location Required</h3>
-                <p>Radius Chat creates secure chat rooms based on your location. People within ~250 meters can join the same room.</p>
-                <p>Your exact location is never stored or shared - only used to determine which chat room to join.</p>
-                <button class="location-btn" id="enable-location">Enable Location & Join Chat</button>
+                <h3>Join Your Local Chat</h3>
+                <p>ne4rby connects you with people within ~250 meters using <strong>end-to-end encryption</strong>.</p>
+                <p><strong>Perfect for:</strong> Events, cafes, protests, campus, emergency coordination</p>
+                <p>🔐 <strong>Completely private</strong> - no registration, no data collection, messages disappear when you leave</p>
+                <button class="location-btn" id="enable-location">🚀 Enable Location & Join Chat</button>
+                <p style="font-size: 0.8rem; margin-top: 10px; opacity: 0.7;">
+                    Your location is only used to find the right chat room - never stored or shared
+                </p>
             </div>
         </div>
         
         <div class="input-area">
             <input type="text" id="msg" placeholder="Type your message..." disabled>
             <button id="send" disabled>Send</button>
+        </div>
+    </div>
+    
+    <!-- Info Modal -->
+    <div class="info-modal" id="info-modal">
+        <div class="info-content">
+            <button class="info-close" id="info-close">×</button>
+            
+            <h2>🔐 How ne4rby Works</h2>
+            
+            <p><strong>ne4rby</strong> creates secure, location-based chat rooms where only people within ~250 meters can communicate.</p>
+            
+            <h3>🌍 Location-Based Rooms</h3>
+            <ul>
+                <li>Your location determines which chat room you join</li>
+                <li>Only people within ~250m radius can see your messages</li>
+                <li>Each location supports up to 25 users for optimal performance</li>
+                <li>Perfect for events, cafes, protests, campus areas</li>
+                <li>Your exact location is never stored or shared</li>
+            </ul>
+            
+            <h3>🔒 End-to-End Encryption</h3>
+            <ul>
+                <li>All messages are encrypted before leaving your device</li>
+                <li>Uses Web Crypto API (ECDH + AES-GCM)</li>
+                <li>Server cannot read your messages - only relays encrypted data</li>
+                <li>Each user pair has unique encryption keys</li>
+            </ul>
+            
+            <h3>🕵️ Privacy Guarantees</h3>
+            <ul>
+                <li><strong>No registration</strong> - no email, phone, or personal data</li>
+                <li><strong>No message storage</strong> - messages exist only in your browser</li>
+                <li><strong>No tracking</strong> - no cookies, analytics, or user profiles</li>
+                <li><strong>Anonymous IDs</strong> - cryptographic hashes, not real names</li>
+                <li><strong>Ephemeral</strong> - everything disappears when you close the tab</li>
+            </ul>
+            
+            <div>
+                <span class="security-badge">🔐 End-to-End Encrypted</span>
+                <span class="security-badge">🚫 No Data Collection</span>
+                <span class="security-badge">📱 No App Install</span>
+                <span class="security-badge">🌐 Open Source</span>
+            </div>
+            
+            <h3>⚠️ Important Notes</h3>
+            <ul>
+                <li>Messages are not saved - refresh = lose history</li>
+                <li>Only works with location permission enabled</li>
+                <li>Requires modern browser with Web Crypto API</li>
+                <li>Best used in areas with multiple people nearby</li>
+                <li>Room capacity limited to 25 users for performance</li>
+            </ul>
+            
+            <h3>⚡ Performance & Scaling</h3>
+            <ul>
+                <li><strong>Room Limits:</strong> Max 25 users per location for optimal performance</li>
+                <li><strong>Message Efficiency:</strong> Each message encrypted individually for security</li>
+                <li><strong>Auto-Cleanup:</strong> Rooms expire after 15 minutes of inactivity</li>
+                <li><strong>Busy Areas:</strong> If location is full, try moving slightly or wait</li>
+            </ul>
+            
+            <h3>🎯 Great For</h3>
+            <ul>
+                <li><strong>Events:</strong> Concerts, festivals, conferences</li>
+                <li><strong>Activism:</strong> Protests, rallies, organizing</li>
+                <li><strong>Social:</strong> Cafes, libraries, waiting areas</li>
+                <li><strong>Campus:</strong> Study groups, meetups</li>
+                <li><strong>Emergency:</strong> Local coordination during outages</li>
+            </ul>
+            
+            <p><em>Built with privacy-first principles. Your conversations belong to you.</em></p>
         </div>
     </div>
     
