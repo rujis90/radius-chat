@@ -123,6 +123,21 @@ const crypto = {
   }
 };
 
+// Generate unique user ID from public key (15 hex characters)
+async function generateUserId(publicKey) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(publicKey);
+  const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+  const hashArray = new Uint8Array(hashBuffer);
+  
+  // Convert first 8 bytes to hex (16 chars) then take first 15
+  const hexString = Array.from(hashArray.slice(0, 8))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+  
+  return hexString.substring(0, 15);
+}
+
 // Update status
 function updateStatus(text, showPeerCount = false) {
   console.log("📊 Status update:", text, showPeerCount);
@@ -131,14 +146,24 @@ function updateStatus(text, showPeerCount = false) {
 }
 
 // Add message to UI
-function addMessage(text, isOwn = false) {
-  console.log("💬 Adding message:", text, "isOwn:", isOwn);
+function addMessage(text, isOwn = false, userId = null) {
+  console.log("💬 Adding message:", text, "isOwn:", isOwn, "userId:", userId);
   const messageDiv = document.createElement("div");
   messageDiv.className = "message";
   
   const timeDiv = document.createElement("div");
   timeDiv.className = "message-time";
   timeDiv.textContent = new Date().toLocaleTimeString();
+  
+  // Add user ID if provided
+  if (userId) {
+    const userSpan = document.createElement("span");
+    userSpan.style.color = isOwn ? "#38a169" : "#667eea";
+    userSpan.style.fontWeight = "bold";
+    userSpan.style.marginLeft = "8px";
+    userSpan.textContent = `#${userId}`;
+    timeDiv.appendChild(userSpan);
+  }
   
   const textDiv = document.createElement("div");
   textDiv.className = "message-text";
@@ -195,7 +220,7 @@ function showError(message) {
 }
 
 // Decrypt and render incoming message
-async function decryptAndRender(pkt, peerSecrets) {
+async function decryptAndRender(pkt, peerSecrets, peerIds) {
   console.log("🔓 Attempting to decrypt message:", pkt);
   try {
     const { peer, iv, data } = pkt;
@@ -210,7 +235,7 @@ async function decryptAndRender(pkt, peerSecrets) {
     // Decrypt the message
     const message = await crypto.decrypt({ iv, data }, sharedKey);
     console.log("✅ Message decrypted:", message);
-    addMessage(message, false);
+    addMessage(message, false, peerIds[peer]);
     
   } catch (error) {
     console.error("❌ Failed to decrypt message:", error);
@@ -229,6 +254,10 @@ async function initializeChat(latitude, longitude) {
     const myKeyPair = await crypto.generateKeyPair();
     const myPublicKey = await crypto.exportPublicKey(myKeyPair);
     console.log("✅ Key pair generated, public key:", myPublicKey.substring(0, 20) + "...");
+
+    // Generate unique user ID from public key (15 hex chars)
+    const myUserId = await generateUserId(myPublicKey);
+    console.log("🆔 My user ID:", myUserId);
 
     // 2. WebSocket handshake
     const wsUrl = `ws://${location.host}/ws`;
@@ -260,6 +289,7 @@ async function initializeChat(latitude, longitude) {
 
     // 3. Peer management
     const peerSecrets = {};       // peerPub -> CryptoKey
+    const peerIds = {};           // peerPub -> userId
 
     ws.onmessage = async ({ data }) => {
       console.log("📨 Received message:", data);
@@ -277,7 +307,11 @@ async function initializeChat(latitude, longitude) {
               const peerPublicKey = await crypto.importPublicKey(peerPub);
               const sharedKey = await crypto.deriveSharedSecret(myKeyPair.privateKey, peerPublicKey);
               peerSecrets[peerPub] = sharedKey;
-              console.log("✅ Shared secret created");
+              
+              // Generate and store peer ID
+              const peerId = await generateUserId(peerPub);
+              peerIds[peerPub] = peerId;
+              console.log("✅ Shared secret created for peer:", peerId);
             } catch (error) {
               console.error("❌ Failed to create shared secret:", error);
             }
@@ -302,7 +336,7 @@ async function initializeChat(latitude, longitude) {
       }
 
       // Encrypted message relay
-      await decryptAndRender(pkt, peerSecrets);
+      await decryptAndRender(pkt, peerSecrets, peerIds);
     };
 
     // 4. Send a message
@@ -324,7 +358,7 @@ async function initializeChat(latitude, longitude) {
       }
       
       // Add to our own UI
-      addMessage(text, true);
+      addMessage(text, true, myUserId);
       
       // Send encrypted to all peers
       for (const [peerPub, sharedKey] of Object.entries(peerSecrets)) {
