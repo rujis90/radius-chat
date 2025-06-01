@@ -440,11 +440,49 @@
         @media (max-width: 768px) {
             body {
                 padding: 0;
+                overflow: hidden;
             }
             
             .chat-container {
                 max-width: 100%;
                 border-radius: 0;
+                height: 100vh;
+                height: 100dvh; /* Dynamic viewport height for mobile */
+                min-height: -webkit-fill-available; /* Safari mobile fix */
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+            }
+            
+            .header {
+                padding: max(env(safe-area-inset-top), 20px) 20px 15px;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                z-index: 100;
+            }
+            
+            .messages {
+                padding-top: 80px; /* Account for fixed header */
+                padding-bottom: 80px; /* Account for fixed input area */
+                height: calc(100vh - 160px);
+                height: calc(100dvh - 160px);
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .input-area {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                padding: 15px 20px max(env(safe-area-inset-bottom), 20px);
+                background: white;
+                border-top: 1px solid #e1e8ed;
+                z-index: 100;
             }
             
             .location-prompt {
@@ -456,6 +494,47 @@
                 max-width: 95%;
                 padding: 25px 20px;
                 margin: 10px;
+                max-height: 85vh;
+                max-height: 85dvh;
+            }
+            
+            #msg {
+                font-size: 16px; /* Prevents zoom on iOS */
+                min-height: 45px;
+            }
+            
+            #send {
+                min-width: 45px;
+                min-height: 45px;
+                flex-shrink: 0;
+            }
+        }
+
+        /* Additional mobile fixes for large phones */
+        @media (max-width: 768px) and (min-height: 700px) {
+            .messages {
+                padding-top: 90px;
+                padding-bottom: 90px;
+                height: calc(100vh - 180px);
+                height: calc(100dvh - 180px);
+            }
+        }
+
+        /* Landscape mobile optimization */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .header {
+                padding: 10px 20px;
+            }
+            
+            .messages {
+                padding-top: 60px;
+                padding-bottom: 70px;
+                height: calc(100vh - 130px);
+                height: calc(100dvh - 130px);
+            }
+            
+            .input-area {
+                padding: 10px 20px 15px;
             }
         }
 
