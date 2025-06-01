@@ -436,72 +436,75 @@
             margin: 5px 5px 5px 0;
         }
 
-        /* Mobile optimizations */
+        /* Mobile optimizations - SIMPLIFIED */
         @media (max-width: 768px) {
             body {
                 padding: 0;
+                margin: 0;
                 overflow: hidden;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             }
             
             .chat-container {
-                max-width: 100%;
-                border-radius: 0;
+                width: 100%;
                 height: 100vh;
-                height: 100dvh; /* Dynamic viewport height for mobile */
-                min-height: -webkit-fill-available; /* Safari mobile fix */
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
+                border-radius: 0;
+                background: #fff;
                 display: flex;
                 flex-direction: column;
+                position: relative;
             }
             
             .header {
-                padding: max(env(safe-area-inset-top), 20px) 20px 15px;
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                z-index: 200;
-                height: 80px;
-                box-sizing: border-box;
+                background: linear-gradient(90deg, #25D366 0%, #128C7E 100%);
+                color: white;
+                padding: 20px;
                 flex-shrink: 0;
+                position: relative;
+                z-index: 10;
+                min-height: 60px;
+                box-sizing: border-box;
             }
             
             .messages {
-                padding-top: 80px; /* Account for fixed header */
-                padding-bottom: 80px; /* Account for fixed input area */
-                height: calc(100vh - 160px);
-                height: calc(100dvh - 160px);
+                flex: 1;
                 overflow-y: auto;
+                background: #f8f9fa;
+                position: relative;
+                min-height: 0;
                 -webkit-overflow-scrolling: touch;
-                position: fixed;
-                top: 0;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                z-index: 50;
             }
             
             .input-area {
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                padding: 15px 20px max(env(safe-area-inset-bottom), 20px);
                 background: white;
-                border-top: 1px solid #e1e8ed;
-                z-index: 200;
-                height: 80px;
-                box-sizing: border-box;
+                padding: 15px;
                 flex-shrink: 0;
+                border-top: 1px solid #e1e8ed;
+                position: relative;
+                z-index: 10;
+                min-height: 60px;
+                box-sizing: border-box;
             }
             
             .location-prompt {
                 margin: 15px;
                 padding: 30px 20px;
+                background: white;
+                border-radius: 20px;
+                box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            }
+            
+            #msg {
+                font-size: 16px;
+                min-height: 44px;
+                border-radius: 22px;
+                padding: 12px 18px;
+            }
+            
+            #send {
+                min-width: 44px;
+                min-height: 44px;
+                border-radius: 22px;
             }
             
             .info-content {
@@ -509,179 +512,40 @@
                 padding: 25px 20px;
                 margin: 10px;
                 max-height: 85vh;
-                max-height: 85dvh;
-            }
-            
-            #msg {
-                font-size: 16px; /* Prevents zoom on iOS */
-                min-height: 45px;
-            }
-            
-            #send {
-                min-width: 45px;
-                min-height: 45px;
-                flex-shrink: 0;
             }
         }
 
-        /* Additional mobile fixes for large phones */
-        @media (max-width: 768px) and (min-height: 700px) {
-            .header {
-                height: 90px;
-                padding: max(env(safe-area-inset-top), 25px) 20px 15px;
-            }
-            
-            .messages {
-                padding-top: 90px;
-                padding-bottom: 90px;
-                height: calc(100vh - 180px);
-                height: calc(100dvh - 180px);
-            }
-            
-            .input-area {
-                height: 90px;
-                padding: 20px 20px max(env(safe-area-inset-bottom), 20px);
-            }
-        }
-
-        /* Landscape mobile optimization */
-        @media (max-width: 768px) and (orientation: landscape) {
-            .header {
-                padding: 10px 20px;
-                height: 60px;
-            }
-            
-            .messages {
-                padding-top: 60px;
-                padding-bottom: 70px;
-                height: calc(100vh - 130px);
-                height: calc(100dvh - 130px);
-            }
-            
-            .input-area {
-                padding: 10px 20px 15px;
-                height: 70px;
-            }
-        }
-
-        /* Dark mode support */
-        @media (prefers-color-scheme: dark) {
-            .messages {
-                background: #1a1a1a;
-            }
-            
-            .location-prompt {
-                background: #2c2c2c;
-                color: #fff;
-            }
-            
-            .location-prompt h3 {
-                color: #fff;
-            }
-            
-            .location-prompt p {
-                color: #ccc;
-            }
-            
-            .message.other {
-                background: #3c3c3c;
-                color: #fff;
-            }
-            
-            .info-content {
-                background: #2c2c2c;
-                color: #fff;
-            }
-            
-            .info-content h2,
-            .info-content h3 {
-                color: #fff;
-            }
-            
-            .info-content p,
-            .info-content li {
-                color: #ccc;
-            }
-        }
-
-        /* Mobile keyboard handling */
+        /* Keyboard handling - SIMPLIFIED */
         @media (max-width: 768px) {
-            /* When input is focused, adjust layout for keyboard */
-            body.keyboard-open {
-                height: 100vh;
-                overflow: hidden;
-            }
-            
             body.keyboard-open .chat-container {
-                height: 100vh;
-                position: fixed;
-                top: 0;
-                bottom: 0;
+                height: 50vh; /* Compact mode when keyboard is open */
             }
             
             body.keyboard-open .header {
-                position: fixed;
-                top: 0;
-                height: 60px;
-                padding: 15px 20px 10px;
-                z-index: 300;
-            }
-            
-            body.keyboard-open .messages {
-                position: fixed;
-                top: 60px;
-                bottom: 70px;
-                left: 0;
-                right: 0;
-                padding: 10px 0;
-                height: auto;
-                overflow-y: auto;
-                z-index: 100;
+                padding: 10px 20px;
+                min-height: 50px;
             }
             
             body.keyboard-open .input-area {
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                height: 70px;
-                padding: 12px 15px;
-                z-index: 300;
-                background: white;
-                border-top: 1px solid #e1e8ed;
+                padding: 10px 15px;
+                min-height: 50px;
             }
             
             body.keyboard-open #msg {
-                min-height: 40px;
-                font-size: 16px;
+                min-height: 36px;
+                padding: 8px 15px;
             }
             
             body.keyboard-open #send {
-                min-width: 40px;
-                min-height: 40px;
+                min-width: 36px;
+                min-height: 36px;
             }
         }
 
-        /* Alternative approach using viewport units that work better with keyboards */
-        @supports (height: 100dvh) {
-            @media (max-width: 768px) {
-                .chat-container {
-                    height: 100svh; /* Small viewport height - excludes keyboard */
-                    min-height: 100svh;
-                }
-                
-                .messages {
-                    height: calc(100svh - 160px);
-                }
-            }
-        }
-
-        /* Prevent zoom on input focus (iOS) */
+        /* Prevent zoom on input focus */
         @media (max-width: 768px) {
             input, textarea, select {
                 font-size: 16px !important;
-                transform-origin: left top;
-                transition: none !important;
             }
         }
     </style>

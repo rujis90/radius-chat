@@ -638,112 +638,32 @@ if (infoBtn && infoModal && infoClose) {
   });
 }
 
-// Mobile keyboard optimizations
+// Mobile keyboard optimizations - SIMPLIFIED
 if (msgInput) {
-  let initialViewportHeight = window.innerHeight;
-  let isKeyboardOpen = false;
-  
-  // Prevent body scrolling on mobile
-  document.body.style.overflow = 'hidden';
-  
-  // Detect keyboard open/close by monitoring viewport height changes
-  function handleViewportChange() {
-    const currentHeight = window.innerHeight;
-    const heightDifference = initialViewportHeight - currentHeight;
-    
-    // If viewport height decreased by more than 150px, keyboard is likely open
-    if (heightDifference > 150 && !isKeyboardOpen) {
-      console.log("📱 Keyboard opened, height difference:", heightDifference);
-      document.body.classList.add('keyboard-open');
-      isKeyboardOpen = true;
-      
-      // Ensure messages are scrolled to show latest content
-      setTimeout(() => {
-        scrollToBottom();
-        
-        // Make sure input area is visible and focused
-        if (msgInput) {
-          msgInput.focus();
-        }
-      }, 150);
-      
-    } else if (heightDifference < 100 && isKeyboardOpen) {
-      console.log("📱 Keyboard closed, height difference:", heightDifference);
-      document.body.classList.remove('keyboard-open');
-      isKeyboardOpen = false;
-      
-      // Update initial height for next detection
-      initialViewportHeight = window.innerHeight;
-    }
-  }
-  
-  // Listen for viewport changes (keyboard open/close)
-  window.addEventListener('resize', handleViewportChange);
-  window.addEventListener('orientationchange', () => {
-    setTimeout(() => {
-      initialViewportHeight = window.innerHeight;
-      handleViewportChange();
-    }, 500);
-  });
-  
-  // When input is focused, ensure we're at bottom to show keyboard properly
+  // Simple keyboard detection based on input focus
   msgInput.addEventListener("focus", () => {
-    console.log("📱 Input focused");
+    console.log("📱 Input focused - keyboard likely open");
+    document.body.classList.add('keyboard-open');
     
-    // Prevent the page from scrolling when input focuses
+    // Small delay to ensure layout settles
     setTimeout(() => {
-      // Scroll messages to bottom, but don't move the input area
       scrollToBottom();
-      
-      // Additional keyboard detection for iOS
-      if (window.innerHeight < initialViewportHeight - 100) {
-        document.body.classList.add('keyboard-open');
-        isKeyboardOpen = true;
-      }
     }, 200);
   });
   
-  // When input loses focus, check if keyboard closed
   msgInput.addEventListener("blur", () => {
-    console.log("📱 Input blurred");
-    setTimeout(() => {
-      // Check if keyboard is still open
-      if (window.innerHeight >= initialViewportHeight - 100) {
-        document.body.classList.remove('keyboard-open');
-        isKeyboardOpen = false;
-        initialViewportHeight = window.innerHeight;
-      }
-    }, 300);
+    console.log("📱 Input blurred - keyboard likely closed");
+    document.body.classList.remove('keyboard-open');
   });
   
-  // Prevent input area from scrolling with messages
-  if (document.querySelector('.input-area')) {
-    document.querySelector('.input-area').addEventListener('touchmove', (e) => {
-      e.preventDefault();
-    }, { passive: false });
-  }
-  
-  // Handle visual viewport API if available (modern browsers)
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', () => {
-      const keyboardHeight = window.innerHeight - window.visualViewport.height;
-      
-      if (keyboardHeight > 50 && !isKeyboardOpen) {
-        console.log("📱 Visual viewport: Keyboard opened, height:", keyboardHeight);
-        document.body.classList.add('keyboard-open');
-        isKeyboardOpen = true;
-        
-        setTimeout(() => {
-          scrollToBottom();
-        }, 100);
-        
-      } else if (keyboardHeight < 50 && isKeyboardOpen) {
-        console.log("📱 Visual viewport: Keyboard closed");
-        document.body.classList.remove('keyboard-open');
-        isKeyboardOpen = false;
+  // Handle orientation changes
+  window.addEventListener("orientationchange", () => {
+    setTimeout(() => {
+      if (document.activeElement === msgInput) {
+        scrollToBottom();
       }
-    });
-  }
+    }, 500);
+  });
 }
 
 // Touch improvements for better mobile UX (excluding send button)
@@ -773,15 +693,5 @@ if ('ontouchstart' in window) {
     }
   });
 }
-
-// Handle orientation changes
-window.addEventListener("orientationchange", () => {
-  setTimeout(() => {
-    // Force scroll to bottom after orientation change if user was at bottom
-    if (isAtBottom()) {
-      scrollToBottom();
-    }
-  }, 500);
-});
 
 console.log("🏁 Script loaded and ready!");
