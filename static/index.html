@@ -577,6 +577,86 @@
                 color: #ccc;
             }
         }
+
+        /* Mobile keyboard handling */
+        @media (max-width: 768px) {
+            /* When input is focused, adjust layout for keyboard */
+            body.keyboard-open {
+                height: 100vh;
+                overflow: hidden;
+            }
+            
+            body.keyboard-open .chat-container {
+                height: 100vh;
+                position: fixed;
+                top: 0;
+                bottom: 0;
+            }
+            
+            body.keyboard-open .header {
+                position: fixed;
+                top: 0;
+                height: 60px;
+                padding: 15px 20px 10px;
+                z-index: 200;
+            }
+            
+            body.keyboard-open .messages {
+                position: fixed;
+                top: 60px;
+                bottom: 70px;
+                left: 0;
+                right: 0;
+                padding: 10px 0;
+                height: auto;
+                overflow-y: auto;
+            }
+            
+            body.keyboard-open .input-area {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 70px;
+                padding: 12px 15px;
+                z-index: 200;
+                background: white;
+                border-top: 1px solid #e1e8ed;
+            }
+            
+            body.keyboard-open #msg {
+                min-height: 40px;
+                font-size: 16px;
+            }
+            
+            body.keyboard-open #send {
+                min-width: 40px;
+                min-height: 40px;
+            }
+        }
+
+        /* Alternative approach using viewport units that work better with keyboards */
+        @supports (height: 100dvh) {
+            @media (max-width: 768px) {
+                .chat-container {
+                    height: 100svh; /* Small viewport height - excludes keyboard */
+                    min-height: 100svh;
+                }
+                
+                .messages {
+                    height: calc(100svh - 160px);
+                }
+            }
+        }
+
+        /* Prevent zoom on input focus (iOS) */
+        @media (max-width: 768px) {
+            input, textarea, select {
+                font-size: 16px !important;
+                transform-origin: left top;
+                transition: none !important;
+            }
+        }
     </style>
 </head>
 <body>
