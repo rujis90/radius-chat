@@ -195,32 +195,40 @@ function addMessage(text, isOwn = false, userId = null) {
     console.log(`🧹 Removed ${messagesToRemove} old messages (keeping latest ${MAX_MESSAGES})`);
   }
   
-  // Ensure smooth auto-scroll to latest message (works on both mobile and desktop)
-  scrollToBottom();
+  // WhatsApp-style auto-scroll: only scroll if user was at bottom or it's their own message
+  const shouldAutoScroll = isAtBottom() || isOwn;
+  if (shouldAutoScroll) {
+    scrollToBottom();
+  } else {
+    console.log("📱 User reading old messages, not auto-scrolling");
+  }
 }
 
-// Consistent scroll-to-bottom function for both mobile and desktop
+// Simple chat scroll - like Telegram/WhatsApp
+function isAtBottom() {
+  if (!messagesEl) return true;
+  const threshold = 100; // pixels from bottom
+  return messagesEl.scrollTop >= (messagesEl.scrollHeight - messagesEl.offsetHeight - threshold);
+}
+
 function scrollToBottom() {
   if (!messagesEl) return;
   
-  // Simple, reliable scroll approach that works consistently on mobile and desktop
-  requestAnimationFrame(() => {
-    // Force scroll to absolute bottom
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-    
-    // Double-check after a brief delay (important for mobile)
-    requestAnimationFrame(() => {
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    });
-  });
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+// Auto-scroll only if user is at bottom (like all good chat apps)
+function autoScrollIfAtBottom() {
+  if (isAtBottom()) {
+    scrollToBottom();
+  }
 }
 
 // Clear loading message
 function clearLoading() {
   console.log("🧹 Clearing loading message");
   messagesEl.innerHTML = "";
-  // Ensure we're at the right scroll position after clearing
-  scrollToBottom();
+  scrollToBottom(); // Always scroll to bottom when clearing
 }
 
 // Show loading state
@@ -601,18 +609,20 @@ if (infoBtn && infoModal && infoClose) {
 
 // Mobile keyboard optimizations
 if (msgInput) {
-  // Prevent zoom on iOS when focusing input
+  // When input is focused, ensure we're at bottom to show keyboard properly
   msgInput.addEventListener("focus", () => {
-    // Ensure latest messages are visible when keyboard opens
     setTimeout(() => {
       scrollToBottom();
     }, 300);
   });
   
-  // Simple blur handler to ensure messages are visible when keyboard closes
+  // When input loses focus, check if we should stay at bottom
   msgInput.addEventListener("blur", () => {
     setTimeout(() => {
-      scrollToBottom();
+      // Only scroll if user was at bottom before focusing
+      if (isAtBottom()) {
+        scrollToBottom();
+      }
     }, 300);
   });
   
@@ -636,33 +646,28 @@ if ('ontouchstart' in window) {
     if (element) {
       element.addEventListener("touchstart", () => {
         element.style.opacity = "0.7";
-      });
+      }, { passive: true });
       
       element.addEventListener("touchend", () => {
         setTimeout(() => {
           element.style.opacity = "";
         }, 150);
-      });
+      }, { passive: true });
       
       element.addEventListener("touchcancel", () => {
         element.style.opacity = "";
-      });
+      }, { passive: true });
     }
-  });
-}
-
-// Optimize scroll behavior for mobile
-if (messagesEl) {
-  messagesEl.addEventListener("touchmove", (e) => {
-    e.stopPropagation();
   });
 }
 
 // Handle orientation changes
 window.addEventListener("orientationchange", () => {
   setTimeout(() => {
-    // Ensure latest messages are visible after orientation change
-    scrollToBottom();
+    // Force scroll to bottom after orientation change if user was at bottom
+    if (isAtBottom()) {
+      scrollToBottom();
+    }
   }, 500);
 });
 
