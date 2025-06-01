@@ -645,9 +645,10 @@ if (msgInput) {
     console.log("📱 Input focused - keyboard likely open");
     document.body.classList.add('keyboard-open');
     
-    // Small delay to ensure layout settles
+    // Small delay to ensure layout settles and input is visible
     setTimeout(() => {
       scrollToBottom();
+      msgInput.scrollIntoView({ behavior: 'smooth', block: 'end' }); 
     }, 200);
   });
   
@@ -659,11 +660,33 @@ if (msgInput) {
   // Handle orientation changes
   window.addEventListener("orientationchange", () => {
     setTimeout(() => {
-      if (document.activeElement === msgInput) {
+      if (document.body.classList.contains('keyboard-open')) {
         scrollToBottom();
+        msgInput.scrollIntoView({ behavior: 'smooth', block: 'end' });
       }
     }, 500);
   });
+
+  // More robust keyboard height detection using VisualViewport API if available
+  if (window.visualViewport) {
+    const updateKeyboardHeight = () => {
+      const keyboardHeight = window.innerHeight - window.visualViewport.height;
+      if (keyboardHeight > 0) {
+        // Set CSS variable for dynamic height adjustment
+        document.documentElement.style.setProperty('--keyboard-open-height', `calc(100vh - ${keyboardHeight}px - var(--input-area-height, 70px))`);
+        document.body.classList.add('keyboard-open');
+        console.log("📱 VisualViewport: Keyboard detected, height:", keyboardHeight);
+      } else {
+        document.documentElement.style.removeProperty('--keyboard-open-height');
+        document.body.classList.remove('keyboard-open');
+        console.log("📱 VisualViewport: Keyboard closed");
+      }
+    };
+    
+    window.visualViewport.addEventListener('resize', updateKeyboardHeight);
+    // Initial check in case keyboard is already open
+    updateKeyboardHeight(); 
+  }
 }
 
 // Touch improvements for better mobile UX (excluding send button)

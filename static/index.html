@@ -26,25 +26,23 @@
 
         .chat-container {
             width: 100%;
-            max-width: 400px;
             height: 100vh;
+            border-radius: 0;
             background: #fff;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             position: relative;
         }
 
         .header {
             background: linear-gradient(90deg, #25D366 0%, #128C7E 100%);
             color: white;
-            padding: 20px 20px 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            flex-shrink: 0;
             position: relative;
             z-index: 10;
+            min-height: 60px;
+            box-sizing: border-box;
         }
 
         .header h1 {
@@ -96,9 +94,12 @@
         .messages {
             flex: 1;
             overflow-y: auto;
-            padding: 0;
             background: #f8f9fa;
             position: relative;
+            min-height: 0;
+            -webkit-overflow-scrolling: touch;
+            display: flex;
+            flex-direction: column;
         }
 
         .messages::-webkit-scrollbar {
@@ -115,29 +116,18 @@
         }
 
         .location-prompt {
-            padding: 40px 30px;
-            text-align: center;
+            margin: auto;
+            padding: 20px;
+            max-width: calc(100% - 40px);
             background: white;
-            margin: 20px;
             border-radius: 20px;
             box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-            animation: slideUp 0.6s ease-out;
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            text-align: center;
         }
 
         .location-prompt .icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
             animation: pulse 2s infinite;
         }
 
@@ -147,29 +137,28 @@
         }
 
         .location-prompt h3 {
-            font-size: 1.3rem;
-            margin-bottom: 15px;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
             color: #2c3e50;
             font-weight: 600;
         }
 
         .location-prompt p {
-            color: #666;
-            line-height: 1.5;
-            margin-bottom: 15px;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            line-height: 1.4;
         }
 
         .location-btn {
             background: linear-gradient(45deg, #25D366 0%, #128C7E 100%);
             color: white;
             border: none;
-            padding: 15px 30px;
+            padding: 12px 25px;
             border-radius: 25px;
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-weight: 600;
             cursor: pointer;
-            margin: 20px 0;
+            margin-top: 15px;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
         }
@@ -184,29 +173,30 @@
         }
 
         .input-area {
-            padding: 15px 20px 20px;
             background: white;
+            padding: 15px;
+            padding-bottom: calc(15px + env(safe-area-inset-bottom));
+            flex-shrink: 0;
+            border-top: 1px solid #e1e8ed;
+            position: relative;
+            z-index: 10;
+            min-height: calc(60px + env(safe-area-inset-bottom));
+            box-sizing: border-box;
             display: flex;
-            gap: 10px;
             align-items: center;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            gap: 10px;
         }
 
         #msg {
+            font-size: 16px;
+            min-height: 44px;
+            border-radius: 22px;
+            padding: 10px 18px;
             flex: 1;
             border: 2px solid #e1e8ed;
-            border-radius: 25px;
-            padding: 12px 18px;
-            font-size: 1rem;
+            background: #f8f9fa;
             outline: none;
             transition: all 0.2s ease;
-            background: #f8f9fa;
-        }
-
-        #msg:focus {
-            border-color: #25D366;
-            background: white;
-            box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
         }
 
         #msg:disabled {
@@ -215,13 +205,19 @@
             cursor: not-allowed;
         }
 
+        #msg:focus {
+            border-color: #25D366;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
+        }
+
         #send {
+            min-width: 44px;
+            min-height: 44px;
+            border-radius: 22px;
             background: linear-gradient(45deg, #25D366 0%, #128C7E 100%);
             color: white;
             border: none;
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
             cursor: pointer;
             font-weight: 600;
             font-size: 0.9rem;
@@ -231,15 +227,9 @@
             justify-content: center;
         }
 
-        #send:hover:not(:disabled) {
-            transform: scale(1.05);
-            box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
-        }
-
         #send:disabled {
             background: #ddd;
             cursor: not-allowed;
-            transform: none;
         }
 
         /* Message styles */
@@ -473,32 +463,25 @@
                 position: relative;
                 min-height: 0;
                 -webkit-overflow-scrolling: touch;
-            }
-            
-            .input-area {
-                background: white;
-                padding: 15px;
-                flex-shrink: 0;
-                border-top: 1px solid #e1e8ed;
-                position: relative;
-                z-index: 10;
-                min-height: 60px;
-                box-sizing: border-box;
+                display: flex;
+                flex-direction: column;
             }
             
             .location-prompt {
-                margin: 15px;
-                padding: 30px 20px;
+                margin: auto;
+                padding: 20px;
+                max-width: calc(100% - 40px);
                 background: white;
                 border-radius: 20px;
                 box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+                text-align: center;
             }
             
             #msg {
                 font-size: 16px;
                 min-height: 44px;
                 border-radius: 22px;
-                padding: 12px 18px;
+                padding: 10px 18px;
             }
             
             #send {
@@ -518,7 +501,7 @@
         /* Keyboard handling - SIMPLIFIED */
         @media (max-width: 768px) {
             body.keyboard-open .chat-container {
-                height: 50vh; /* Compact mode when keyboard is open */
+                height: var(--keyboard-open-height, 50vh);
             }
             
             body.keyboard-open .header {
@@ -528,7 +511,8 @@
             
             body.keyboard-open .input-area {
                 padding: 10px 15px;
-                min-height: 50px;
+                padding-bottom: calc(10px + env(safe-area-inset-bottom));
+                min-height: calc(50px + env(safe-area-inset-bottom));
             }
             
             body.keyboard-open #msg {
@@ -575,7 +559,7 @@
             </div>
         </div>
         
-        <div class="input-area">
+        <div class="input-area" id="input-area">
             <input type="text" id="msg" placeholder="Type your message..." disabled autocomplete="off" autocorrect="off" autocapitalize="sentences">
             <button id="send" disabled>Send</button>
         </div>
