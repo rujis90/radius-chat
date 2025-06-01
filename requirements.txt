@@ -2,4 +2,6 @@ Flask==2.3.3
 flask-sock==0.7.0
 geohash2==1.1
 cryptography==41.0.7 
-gunicorn 
+gunicorn
+gevent
+gevent-websocket 
