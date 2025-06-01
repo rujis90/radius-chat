@@ -462,56 +462,87 @@ async function initializeChat(latitude, longitude) {
     // 4. Send a message
     async function sendMessage() {
       console.log("📤 Send message triggered");
+      console.log("📱 User agent:", navigator.userAgent);
+      console.log("📱 Touch support:", 'ontouchstart' in window);
+      
       const text = msgInput.value.trim();
       if (!text) {
         console.log("⚠️ Empty message, ignoring");
         return;
       }
       
-      const peerCount = Object.keys(peerSecrets).length;
-      console.log("👥 Sending to", peerCount, "peers");
+      // Temporarily disable send button to prevent double sends
+      sendBtn.disabled = true;
       
-      if (peerCount === 0) {
-        addMessage("No peers nearby to send message to", false);
-        msgInput.value = "";
-        return;
-      }
-      
-      // Add to our own UI
-      addMessage(text, true, myUserId);
-      
-      // Create encrypted versions for each peer
-      const encryptedVersions = {};
-      for (const [peerPub, sharedKey] of Object.entries(peerSecrets)) {
-        console.log("🔐 Encrypting message for peer:", peerPub.substring(0, 20) + "...");
-        try {
-          const encrypted = await crypto.encrypt(text, sharedKey);
-          encryptedVersions[peerPub] = {
-            iv: encrypted.iv,
-            data: encrypted.data
-          };
-        } catch (error) {
-          console.error("❌ Failed to encrypt message:", error);
+      try {
+        const peerCount = Object.keys(peerSecrets).length;
+        console.log("👥 Sending to", peerCount, "peers");
+        
+        if (peerCount === 0) {
+          addMessage("No peers nearby to send message to", false);
+          msgInput.value = "";
+          return;
         }
+        
+        // Add to our own UI
+        addMessage(text, true, myUserId);
+        
+        // Create encrypted versions for each peer
+        const encryptedVersions = {};
+        for (const [peerPub, sharedKey] of Object.entries(peerSecrets)) {
+          console.log("🔐 Encrypting message for peer:", peerPub.substring(0, 20) + "...");
+          try {
+            const encrypted = await crypto.encrypt(text, sharedKey);
+            encryptedVersions[peerPub] = {
+              iv: encrypted.iv,
+              data: encrypted.data
+            };
+          } catch (error) {
+            console.error("❌ Failed to encrypt message:", error);
+          }
+        }
+        
+        // Send one message with all encrypted versions
+        const multiMessage = {
+          type: "multi_encrypted",
+          sender: myPublicKey,
+          versions: encryptedVersions
+        };
+        
+        console.log("📤 Sending multi-encrypted message:", multiMessage);
+        ws.send(JSON.stringify(multiMessage));
+        
+        msgInput.value = "";
+        console.log("✅ Message sent successfully");
+        
+      } catch (error) {
+        console.error("❌ Error sending message:", error);
+        addMessage("Failed to send message", false);
+      } finally {
+        // Re-enable send button
+        sendBtn.disabled = false;
       }
-      
-      // Send one message with all encrypted versions
-      const multiMessage = {
-        type: "multi_encrypted",
-        sender: myPublicKey,
-        versions: encryptedVersions
-      };
-      
-      console.log("📤 Sending multi-encrypted message:", multiMessage);
-      ws.send(JSON.stringify(multiMessage));
-      
-      msgInput.value = "";
     }
     
-    sendBtn.onclick = sendMessage;
+    // Mobile-compatible send button handling
+    function setupSendButton() {
+      // Remove any existing onclick handler
+      sendBtn.onclick = null;
+      
+      // Add touch-compatible event listeners
+      sendBtn.addEventListener("click", sendMessage);
+      sendBtn.addEventListener("touchend", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        sendMessage();
+      });
+    }
+    
+    setupSendButton();
     
     msgInput.addEventListener("keypress", (e) => {
       if (e.key === "Enter") {
+        e.preventDefault();
         sendMessage();
       }
     });
@@ -625,19 +656,13 @@ if (msgInput) {
       }
     }, 300);
   });
-  
-  // Improved send button handling for mobile
-  sendBtn.addEventListener("touchstart", (e) => {
-    e.preventDefault(); // Prevent double-tap zoom
-  });
 }
 
-// Touch improvements for better mobile UX
+// Touch improvements for better mobile UX (excluding send button)
 if ('ontouchstart' in window) {
-  // Add active states for better touch feedback
+  // Add active states for better touch feedback (excluding send button to avoid conflicts)
   const touchElements = [
     enableLocationBtn,
-    sendBtn,
     infoBtn,
     infoClose
   ].filter(Boolean);
