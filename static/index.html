@@ -454,6 +454,8 @@
                 left: 0;
                 right: 0;
                 bottom: 0;
+                display: flex;
+                flex-direction: column;
             }
             
             .header {
@@ -462,7 +464,10 @@
                 top: 0;
                 left: 0;
                 right: 0;
-                z-index: 100;
+                z-index: 200;
+                height: 80px;
+                box-sizing: border-box;
+                flex-shrink: 0;
             }
             
             .messages {
@@ -472,6 +477,12 @@
                 height: calc(100dvh - 160px);
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
+                position: fixed;
+                top: 0;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                z-index: 50;
             }
             
             .input-area {
@@ -482,7 +493,10 @@
                 padding: 15px 20px max(env(safe-area-inset-bottom), 20px);
                 background: white;
                 border-top: 1px solid #e1e8ed;
-                z-index: 100;
+                z-index: 200;
+                height: 80px;
+                box-sizing: border-box;
+                flex-shrink: 0;
             }
             
             .location-prompt {
@@ -512,11 +526,21 @@
 
         /* Additional mobile fixes for large phones */
         @media (max-width: 768px) and (min-height: 700px) {
+            .header {
+                height: 90px;
+                padding: max(env(safe-area-inset-top), 25px) 20px 15px;
+            }
+            
             .messages {
                 padding-top: 90px;
                 padding-bottom: 90px;
                 height: calc(100vh - 180px);
                 height: calc(100dvh - 180px);
+            }
+            
+            .input-area {
+                height: 90px;
+                padding: 20px 20px max(env(safe-area-inset-bottom), 20px);
             }
         }
 
@@ -524,6 +548,7 @@
         @media (max-width: 768px) and (orientation: landscape) {
             .header {
                 padding: 10px 20px;
+                height: 60px;
             }
             
             .messages {
@@ -535,6 +560,7 @@
             
             .input-area {
                 padding: 10px 20px 15px;
+                height: 70px;
             }
         }
 
@@ -598,7 +624,7 @@
                 top: 0;
                 height: 60px;
                 padding: 15px 20px 10px;
-                z-index: 200;
+                z-index: 300;
             }
             
             body.keyboard-open .messages {
@@ -610,6 +636,7 @@
                 padding: 10px 0;
                 height: auto;
                 overflow-y: auto;
+                z-index: 100;
             }
             
             body.keyboard-open .input-area {
@@ -619,7 +646,7 @@
                 right: 0;
                 height: 70px;
                 padding: 12px 15px;
-                z-index: 200;
+                z-index: 300;
                 background: white;
                 border-top: 1px solid #e1e8ed;
             }

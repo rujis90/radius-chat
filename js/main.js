@@ -643,6 +643,9 @@ if (msgInput) {
   let initialViewportHeight = window.innerHeight;
   let isKeyboardOpen = false;
   
+  // Prevent body scrolling on mobile
+  document.body.style.overflow = 'hidden';
+  
   // Detect keyboard open/close by monitoring viewport height changes
   function handleViewportChange() {
     const currentHeight = window.innerHeight;
@@ -654,11 +657,15 @@ if (msgInput) {
       document.body.classList.add('keyboard-open');
       isKeyboardOpen = true;
       
-      // Scroll to bottom to show input
+      // Ensure messages are scrolled to show latest content
       setTimeout(() => {
         scrollToBottom();
-        msgInput.scrollIntoView({ behavior: 'smooth', block: 'end' });
-      }, 100);
+        
+        // Make sure input area is visible and focused
+        if (msgInput) {
+          msgInput.focus();
+        }
+      }, 150);
       
     } else if (heightDifference < 100 && isKeyboardOpen) {
       console.log("📱 Keyboard closed, height difference:", heightDifference);
@@ -682,7 +689,10 @@ if (msgInput) {
   // When input is focused, ensure we're at bottom to show keyboard properly
   msgInput.addEventListener("focus", () => {
     console.log("📱 Input focused");
+    
+    // Prevent the page from scrolling when input focuses
     setTimeout(() => {
+      // Scroll messages to bottom, but don't move the input area
       scrollToBottom();
       
       // Additional keyboard detection for iOS
@@ -690,7 +700,7 @@ if (msgInput) {
         document.body.classList.add('keyboard-open');
         isKeyboardOpen = true;
       }
-    }, 300);
+    }, 200);
   });
   
   // When input loses focus, check if keyboard closed
@@ -703,13 +713,15 @@ if (msgInput) {
         isKeyboardOpen = false;
         initialViewportHeight = window.innerHeight;
       }
-      
-      // Only scroll if user was at bottom before focusing
-      if (isAtBottom()) {
-        scrollToBottom();
-      }
     }, 300);
   });
+  
+  // Prevent input area from scrolling with messages
+  if (document.querySelector('.input-area')) {
+    document.querySelector('.input-area').addEventListener('touchmove', (e) => {
+      e.preventDefault();
+    }, { passive: false });
+  }
   
   // Handle visual viewport API if available (modern browsers)
   if (window.visualViewport) {
