@@ -277,7 +277,8 @@ async function initializeChat(latitude, longitude) {
     console.log("🆔 My user ID:", myUserId);
 
     // 2. WebSocket handshake
-    const wsUrl = `ws://${location.host}/ws`;
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
     console.log("🔌 Connecting to WebSocket:", wsUrl);
     const ws = new WebSocket(wsUrl);
     
