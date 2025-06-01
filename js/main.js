@@ -195,13 +195,32 @@ function addMessage(text, isOwn = false, userId = null) {
     console.log(`🧹 Removed ${messagesToRemove} old messages (keeping latest ${MAX_MESSAGES})`);
   }
   
-  messagesEl.scrollTop = messagesEl.scrollHeight;
+  // Ensure smooth auto-scroll to latest message (works on both mobile and desktop)
+  scrollToBottom();
+}
+
+// Consistent scroll-to-bottom function for both mobile and desktop
+function scrollToBottom() {
+  if (!messagesEl) return;
+  
+  // Simple, reliable scroll approach that works consistently on mobile and desktop
+  requestAnimationFrame(() => {
+    // Force scroll to absolute bottom
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    
+    // Double-check after a brief delay (important for mobile)
+    requestAnimationFrame(() => {
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    });
+  });
 }
 
 // Clear loading message
 function clearLoading() {
   console.log("🧹 Clearing loading message");
   messagesEl.innerHTML = "";
+  // Ensure we're at the right scroll position after clearing
+  scrollToBottom();
 }
 
 // Show loading state
@@ -545,19 +564,106 @@ if (!enableLocationBtn) {
 
 // Info modal handlers
 if (infoBtn && infoModal && infoClose) {
-  infoBtn.addEventListener("click", () => {
+  // Mobile-optimized modal handling
+  function openModal() {
     infoModal.style.display = "flex";
-  });
+    document.body.classList.add("modal-open");
+    
+    // Focus trap for accessibility and prevent background scrolling
+    const content = infoModal.querySelector('.info-content');
+    if (content) {
+      content.focus();
+    }
+  }
   
-  infoClose.addEventListener("click", () => {
+  function closeModal() {
     infoModal.style.display = "none";
-  });
+    document.body.classList.remove("modal-open");
+  }
   
+  infoBtn.addEventListener("click", openModal);
+  infoClose.addEventListener("click", closeModal);
+  
+  // Close on backdrop click
   infoModal.addEventListener("click", (e) => {
     if (e.target === infoModal) {
-      infoModal.style.display = "none";
+      closeModal();
+    }
+  });
+  
+  // Close on escape key
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && infoModal.style.display === "flex") {
+      closeModal();
     }
   });
 }
+
+// Mobile keyboard optimizations
+if (msgInput) {
+  // Prevent zoom on iOS when focusing input
+  msgInput.addEventListener("focus", () => {
+    // Ensure latest messages are visible when keyboard opens
+    setTimeout(() => {
+      scrollToBottom();
+    }, 300);
+  });
+  
+  // Simple blur handler to ensure messages are visible when keyboard closes
+  msgInput.addEventListener("blur", () => {
+    setTimeout(() => {
+      scrollToBottom();
+    }, 300);
+  });
+  
+  // Improved send button handling for mobile
+  sendBtn.addEventListener("touchstart", (e) => {
+    e.preventDefault(); // Prevent double-tap zoom
+  });
+}
+
+// Touch improvements for better mobile UX
+if ('ontouchstart' in window) {
+  // Add active states for better touch feedback
+  const touchElements = [
+    enableLocationBtn,
+    sendBtn,
+    infoBtn,
+    infoClose
+  ].filter(Boolean);
+  
+  touchElements.forEach(element => {
+    if (element) {
+      element.addEventListener("touchstart", () => {
+        element.style.opacity = "0.7";
+      });
+      
+      element.addEventListener("touchend", () => {
+        setTimeout(() => {
+          element.style.opacity = "";
+        }, 150);
+      });
+      
+      element.addEventListener("touchcancel", () => {
+        element.style.opacity = "";
+      });
+    }
+  });
+}
+
+// Optimize scroll behavior for mobile
+if (messagesEl) {
+  messagesEl.addEventListener("touchmove", (e) => {
+    e.stopPropagation();
+  });
+}
+
+// Handle orientation changes
+window.addEventListener("orientationchange", () => {
+  setTimeout(() => {
+    // Ensure latest messages are visible after orientation change
+    scrollToBottom();
+  }, 500);
+});
 
 console.log("🏁 Script loaded and ready!");
