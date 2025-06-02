@@ -20,6 +20,18 @@ const enableLocationBtn = document.querySelector("#enable-location");
 const infoBtn = document.querySelector("#info-btn");
 const infoModal = document.querySelector("#info-modal");
 const infoClose = document.querySelector("#info-close");
+const inviteBtn = document.querySelector("#invite-btn");
+const inviteModal = document.querySelector("#invite-modal");
+const inviteClose = document.querySelector("#invite-close");
+
+// Parse URL parameters for invite functionality
+const urlParams = new URLSearchParams(window.location.search);
+const inviteToken = urlParams.get('invite');
+const paramLat = urlParams.get('lat');
+const paramLon = urlParams.get('lon');
+
+// Global state
+let currentLocation = null;
 
 // Message management
 const MAX_MESSAGES = 20;  // Keep only latest 20 messages
@@ -34,7 +46,10 @@ console.log("🔍 UI Elements found:", {
   enableLocationBtn: !!enableLocationBtn,
   infoBtn: !!infoBtn,
   infoModal: !!infoModal,
-  infoClose: !!infoClose
+  infoClose: !!infoClose,
+  inviteBtn: !!inviteBtn,
+  inviteModal: !!inviteModal,
+  inviteClose: !!inviteClose
 });
 
 // Crypto utilities using Web Crypto API
@@ -292,6 +307,9 @@ async function initializeChat(latitude, longitude) {
   updateStatus("Connecting to chat...");
   showLoading("Initializing secure connection...");
 
+  // Store location globally for invite creation
+  currentLocation = { lat: latitude, lon: longitude };
+
   try {
     // 1. Generate key pair
     console.log("🔑 Generating key pair...");
@@ -311,11 +329,25 @@ async function initializeChat(latitude, longitude) {
     
     ws.addEventListener("open", () => {
       console.log("✅ WebSocket connected, sending handshake...");
-      const handshake = { pub: myPublicKey, lat: latitude, lon: longitude };
+      const handshake = { 
+        pub: myPublicKey, 
+        lat: latitude, 
+        lon: longitude
+      };
+      
+      // Include invite token if present
+      if (inviteToken) {
+        handshake.invite_token = inviteToken;
+        console.log("📨 Including invite token in handshake:", inviteToken);
+      }
+      
       console.log("📤 Sending handshake:", handshake);
       ws.send(JSON.stringify(handshake));
       updateStatus("Connected", true);
       clearLoading();
+      
+      // Show invite button after successful connection
+      inviteBtn.style.display = "inline";
     });
 
     ws.addEventListener("close", (event) => {
@@ -361,18 +393,34 @@ async function initializeChat(latitude, longitude) {
         return;
       }
 
+      // Handle invite-specific errors
+      if (pkt.type === "error" || pkt.type === "location_error") {
+        console.log("❌ Invite error:", pkt.message);
+        updateStatus("Connection error");
+        showError(pkt.message);
+        return;
+      }
+
       // New peer list
       if (pkt.type === "peers") {
         console.log("👥 Received peer list:", pkt.pubs);
         
         // Display room info if available
         if (pkt.room_info) {
-          const { current_users, max_users, room_hash } = pkt.room_info;
-          console.log(`🏠 Room ${room_hash}: ${current_users}/${max_users} users`);
+          const { current_users, max_users, room_hash, room_type, invite_radius } = pkt.room_info;
+          console.log(`🏠 Room ${room_hash}: ${current_users}/${max_users} users (${room_type})`);
           
-          // Update status with room capacity
-          const capacityText = `${current_users}/${max_users} users`;
+          // Update status with room capacity and type
+          let capacityText = `${current_users}/${max_users} users`;
+          if (room_type === "invite") {
+            capacityText += ` (invite room)`;
+          }
           statusEl.textContent = `Connected (${capacityText})`;
+          
+          // Show invite radius info if in invite room
+          if (room_type === "invite" && invite_radius) {
+            console.log(`📍 Invite room radius: ${invite_radius}m`);
+          }
         }
         
         let newSecretsCreated = false;
@@ -553,168 +601,215 @@ async function initializeChat(latitude, longitude) {
   }
 }
 
-// Handle location button click
-console.log("🎯 Setting up location button click handler...");
+// Main initialization
+console.log("🎯 Starting main initialization...");
 
-if (!enableLocationBtn) {
-  console.error("❌ Location button not found!");
-} else {
-  enableLocationBtn.addEventListener("click", () => {
-    console.log("🎯 LOCATION BUTTON CLICKED!");
-    enableLocationBtn.disabled = true;
-    enableLocationBtn.textContent = "Requesting location...";
-    
-    console.log("📍 Checking geolocation support...");
-    if (!navigator.geolocation) {
-      console.error("❌ Geolocation not supported");
-      showError("Geolocation not supported by this browser");
-      enableLocationBtn.disabled = false;
-      enableLocationBtn.textContent = "Enable Location & Join Chat";
-      return;
-    }
-    
-    console.log("📍 Requesting current position...");
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        console.log("✅ Location received:", pos.coords);
-        const { latitude, longitude } = pos.coords;
-        console.log("📍 Coordinates:", latitude, longitude);
-        await initializeChat(latitude, longitude);
-      },
-      (error) => {
-        console.error("❌ Location error:", error);
-        console.error("Error code:", error.code);
-        console.error("Error message:", error.message);
-        updateStatus("Location access denied");
-        showError("Location access is required to join chat");
-        enableLocationBtn.disabled = false;
-        enableLocationBtn.textContent = "Enable Location & Join Chat";
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000
-      }
-    );
-  });
+// Enable location button handler
+enableLocationBtn.addEventListener("click", async () => {
+  console.log("📍 Location button clicked");
   
-  console.log("✅ Location button click handler set up successfully");
-}
-
-// Info modal handlers
-if (infoBtn && infoModal && infoClose) {
-  // Mobile-optimized modal handling
-  function openModal() {
-    infoModal.style.display = "flex";
-    document.body.classList.add("modal-open");
-    
-    // Focus trap for accessibility and prevent background scrolling
-    const content = infoModal.querySelector('.info-content');
-    if (content) {
-      content.focus();
-    }
-  }
-  
-  function closeModal() {
-    infoModal.style.display = "none";
-    document.body.classList.remove("modal-open");
-  }
-  
-  infoBtn.addEventListener("click", openModal);
-  infoClose.addEventListener("click", closeModal);
-  
-  // Close on backdrop click
-  infoModal.addEventListener("click", (e) => {
-    if (e.target === infoModal) {
-      closeModal();
-    }
-  });
-  
-  // Close on escape key
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && infoModal.style.display === "flex") {
-      closeModal();
-    }
-  });
-}
-
-// Mobile keyboard optimizations - SIMPLIFIED
-if (msgInput) {
-  // Simple keyboard detection based on input focus
-  msgInput.addEventListener("focus", () => {
-    console.log("📱 Input focused - keyboard likely open");
-    document.body.classList.add('keyboard-open');
-    
-    // Small delay to ensure layout settles and input is visible
-    setTimeout(() => {
-      scrollToBottom();
-      msgInput.scrollIntoView({ behavior: 'smooth', block: 'end' }); 
-    }, 200);
-  });
-  
-  msgInput.addEventListener("blur", () => {
-    console.log("📱 Input blurred - keyboard likely closed");
-    document.body.classList.remove('keyboard-open');
-  });
-  
-  // Handle orientation changes
-  window.addEventListener("orientationchange", () => {
-    setTimeout(() => {
-      if (document.body.classList.contains('keyboard-open')) {
-        scrollToBottom();
-        msgInput.scrollIntoView({ behavior: 'smooth', block: 'end' });
-      }
-    }, 500);
-  });
-
-  // More robust keyboard height detection using VisualViewport API if available
-  if (window.visualViewport) {
-    const updateKeyboardHeight = () => {
-      const keyboardHeight = window.innerHeight - window.visualViewport.height;
-      if (keyboardHeight > 0) {
-        // Set CSS variable for dynamic height adjustment
-        document.documentElement.style.setProperty('--keyboard-open-height', `calc(100vh - ${keyboardHeight}px - var(--input-area-height, 70px))`);
-        document.body.classList.add('keyboard-open');
-        console.log("📱 VisualViewport: Keyboard detected, height:", keyboardHeight);
-      } else {
-        document.documentElement.style.removeProperty('--keyboard-open-height');
-        document.body.classList.remove('keyboard-open');
-        console.log("📱 VisualViewport: Keyboard closed");
-      }
-    };
-    
-    window.visualViewport.addEventListener('resize', updateKeyboardHeight);
-    // Initial check in case keyboard is already open
-    updateKeyboardHeight(); 
-  }
-}
-
-// Touch improvements for better mobile UX (excluding send button)
-if ('ontouchstart' in window) {
-  // Add active states for better touch feedback (excluding send button to avoid conflicts)
-  const touchElements = [
-    enableLocationBtn,
-    infoBtn,
-    infoClose
-  ].filter(Boolean);
-  
-  touchElements.forEach(element => {
-    if (element) {
-      element.addEventListener("touchstart", () => {
-        element.style.opacity = "0.7";
-      }, { passive: true });
+  try {
+    if (inviteToken && paramLat && paramLon) {
+      // Use coordinates from invite link
+      console.log("📨 Using invite coordinates:", paramLat, paramLon);
+      await initializeChat(parseFloat(paramLat), parseFloat(paramLon));
+    } else {
+      // Request location permission
+      console.log("🌐 Requesting location permission...");
+      showLoading("Getting your location...");
       
-      element.addEventListener("touchend", () => {
-        setTimeout(() => {
-          element.style.opacity = "";
-        }, 150);
-      }, { passive: true });
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000
+        });
+      });
       
-      element.addEventListener("touchcancel", () => {
-        element.style.opacity = "";
-      }, { passive: true });
+      const { latitude, longitude } = position.coords;
+      console.log("✅ Location obtained:", latitude, longitude);
+      
+      await initializeChat(latitude, longitude);
+    }
+  } catch (error) {
+    console.error("❌ Location error:", error);
+    clearLoading();
+    
+    if (error.code === 1) {
+      showError("Location access denied. Please allow location access and refresh the page.");
+    } else if (error.code === 2) {
+      showError("Location unavailable. Please check your connection and try again.");
+    } else if (error.code === 3) {
+      showError("Location request timed out. Please try again.");
+    } else {
+      showError("Failed to get location. Please try again.");
+    }
+  }
+});
+
+// Invite functionality
+inviteBtn?.addEventListener("click", () => {
+  console.log("📨 Invite button clicked");
+  inviteModal.classList.add("show");
+});
+
+inviteClose?.addEventListener("click", () => {
+  inviteModal.classList.remove("show");
+  // Reset the modal
+  document.querySelector("#invite-result").style.display = "none";
+  document.querySelector("#create-invite-btn").style.display = "block";
+});
+
+// Create invite functionality
+document.querySelector("#create-invite-btn")?.addEventListener("click", async () => {
+  if (!currentLocation) {
+    showError("Location not available. Please reconnect.");
+    return;
+  }
+  
+  const radius = parseInt(document.querySelector("#invite-radius").value);
+  const ttlHours = parseInt(document.querySelector("#invite-ttl").value);
+  const ttlDays = ttlHours / 24;
+  
+  console.log("📨 Creating invite:", { radius, ttlDays, location: currentLocation });
+  
+  try {
+    const response = await fetch("/api/invite", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        center: [currentLocation.lat, currentLocation.lon],
+        radius: radius,
+        ttl_days: ttlDays
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    const result = await response.json();
+    console.log("✅ Invite created:", result);
+    
+    // Show result
+    document.querySelector("#invite-link").value = result.link;
+    document.querySelector("#invite-radius-display").textContent = radius;
+    document.querySelector("#invite-result").style.display = "block";
+    document.querySelector("#create-invite-btn").style.display = "none";
+    
+  } catch (error) {
+    console.error("❌ Failed to create invite:", error);
+    showError("Failed to create invite link. Please try again.");
+  }
+});
+
+// Copy invite link functionality
+document.querySelector("#copy-invite-btn")?.addEventListener("click", async () => {
+  const linkInput = document.querySelector("#invite-link");
+  
+  try {
+    await navigator.clipboard.writeText(linkInput.value);
+    
+    // Visual feedback
+    const btn = document.querySelector("#copy-invite-btn");
+    const originalText = btn.textContent;
+    btn.textContent = "✅ Copied!";
+    btn.style.background = "#38a169";
+    
+    setTimeout(() => {
+      btn.textContent = originalText;
+      btn.style.background = "";
+    }, 2000);
+    
+  } catch (error) {
+    console.error("❌ Failed to copy:", error);
+    
+    // Fallback: select text
+    linkInput.select();
+    linkInput.setSelectionRange(0, 99999);
+    
+    showError("Please copy the link manually");
+  }
+});
+
+// Info modal functionality  
+function openModal() {
+  console.log("ℹ️ Opening info modal");
+  infoModal.classList.add("show");
+}
+
+function closeModal() {
+  console.log("ℹ️ Closing info modal");  
+  infoModal.classList.remove("show");
+}
+
+infoBtn?.addEventListener("click", openModal);
+infoClose?.addEventListener("click", closeModal);
+
+// Handle invite link in URL
+if (inviteToken) {
+  console.log("📨 Invite token detected:", inviteToken);
+  
+  // Update location prompt for invite
+  if (paramLat && paramLon) {
+    locationPrompt.innerHTML = `
+      <div class="icon">🎯</div>
+      <h3>Join Private Chat</h3>
+      <p>You've been invited to join a location-based chat room.</p>
+      <p><strong>🔐 End-to-end encrypted</strong> - only people with this invite link can join.</p>
+      <button class="location-btn" id="enable-location">🚀 Join Private Chat</button>
+      <p style="font-size: 0.8rem; margin-top: 10px; opacity: 0.7;">
+        You'll need to be within the specified radius to join
+      </p>
+    `;
+    
+    // Re-bind the location button
+    const newLocationBtn = document.querySelector("#enable-location");
+    newLocationBtn.addEventListener("click", async () => {
+      console.log("📨 Joining invite chat with provided coordinates");
+      await initializeChat(parseFloat(paramLat), parseFloat(paramLon));
+    });
+  }
+}
+
+// Handle viewport changes for mobile
+if (/Mobi|Android/i.test(navigator.userAgent)) {
+  console.log("📱 Mobile device detected, setting up viewport handling");
+  
+  let initialViewportHeight = window.innerHeight;
+  
+  const updateKeyboardHeight = () => {
+    const currentHeight = window.innerHeight;
+    const heightDiff = initialViewportHeight - currentHeight;
+    
+    if (heightDiff > 150) {
+      console.log("⌨️ Keyboard detected (height diff:", heightDiff + "px)");
+      document.body.style.setProperty('--keyboard-height', heightDiff + 'px');
+      
+      setTimeout(() => {
+        if (msgInput === document.activeElement) {
+          msgInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    } else {
+      console.log("⌨️ Keyboard hidden");
+      document.body.style.removeProperty('--keyboard-height');
+    }
+  };
+  
+  window.addEventListener('resize', updateKeyboardHeight);
+  document.addEventListener('focusin', (e) => {
+    if (e.target === msgInput) {
+      setTimeout(updateKeyboardHeight, 300);
+    }
+  });
+  document.addEventListener('focusout', (e) => {
+    if (e.target === msgInput) {
+      setTimeout(updateKeyboardHeight, 300);
     }
   });
 }
 
-console.log("🏁 Script loaded and ready!");
+console.log("✅ Main initialization complete");

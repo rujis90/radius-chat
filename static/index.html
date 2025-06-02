@@ -443,6 +443,7 @@ body {
             <div class="status">
                 <span id="status">Ready to connect</span>
                 <span id="peer-count" class="peer-count" style="display: none;">0 peers</span>
+                <button id="invite-btn" class="info-btn" title="Create invite link" style="display: none;">📨</button>
                 <button id="info-btn" class="info-btn" title="How it works">ℹ️</button>
             </div>
         </div>
@@ -464,6 +465,57 @@ body {
         <div class="input-area" id="input-area">
             <input type="text" id="msg" placeholder="Type your message..." disabled autocomplete="off" autocorrect="off" autocapitalize="sentences">
             <button id="send" disabled>Send</button>
+        </div>
+    </div>
+    
+    <!-- Invite Modal -->
+    <div class="info-modal" id="invite-modal">
+        <div class="info-content">
+            <button class="info-close" id="invite-close">×</button>
+            
+            <h2>📨 Create Invite Link</h2>
+            
+            <p>Share this location with friends! They'll need to be within your chosen radius to join.</p>
+            
+            <div style="margin: 20px 0;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600;">📍 Radius (meters)</label>
+                <select id="invite-radius" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px;">
+                    <option value="50">50m - Same building</option>
+                    <option value="100">100m - 1 minute walk</option>
+                    <option value="120" selected>120m - 2 minute walk (default)</option>
+                    <option value="200">200m - 3 minute walk</option>
+                    <option value="500">500m - 6 minute walk</option>
+                </select>
+            </div>
+            
+            <div style="margin: 20px 0;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600;">⏰ Expires in</label>
+                <select id="invite-ttl" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 8px;">
+                    <option value="1">1 hour</option>
+                    <option value="6">6 hours</option>
+                    <option value="24">1 day</option>
+                    <option value="48" selected>2 days (default)</option>
+                    <option value="168">1 week</option>
+                </select>
+            </div>
+            
+            <button id="create-invite-btn" class="location-btn" style="width: 100%; margin: 20px 0;">
+                🚀 Create Invite Link
+            </button>
+            
+            <div id="invite-result" style="display: none;">
+                <h3>✅ Invite Created!</h3>
+                <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <strong>Link:</strong><br>
+                    <input id="invite-link" type="text" readonly style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 14px;">
+                </div>
+                <button id="copy-invite-btn" class="location-btn" style="width: 100%; margin: 10px 0;">
+                    📋 Copy Link
+                </button>
+                <p style="font-size: 0.9rem; color: #666; margin-top: 15px;">
+                    Share this link with people you want to chat with. They'll need to be within <span id="invite-radius-display"></span>m of your current location to join.
+                </p>
+            </div>
         </div>
     </div>
     
